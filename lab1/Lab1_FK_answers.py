@@ -30,9 +30,91 @@ def part1_calculate_T_pose(bvh_file_path):
     Tips:
         joint_name顺序应该和bvh一致
     """
-    joint_name = None
-    joint_parent = None
-    joint_offset = None
+
+    print("--------------------part1_calculate_T_pose start--------------------")
+    # 1.按行读取BVH文件,读到ROOT代表开始,读到MOTION代表结束
+    # 2.读到ROOT,JOINT,End Site存入名字,每次存入需要保留上一次的名字（For End Site Name）
+    # 3.记录last_joint_name为End Site的名字准备,记录current_index,递增关节索引
+    # 4.记录deep_parent,current_deep,分别为当前的深度父类和当前深度,保证能获取到正确的父关节索引。深度计算通过"{","}"这两种括号记录
+    # 5.依据上述逻辑填充joint_name, joint_parent, joint_offset
+
+    joint_name = []
+    joint_parent = []
+    joint_offset = []
+    bvh_file = open(bvh_file_path, mode='r')
+
+    last_joint_name = ""
+    deep_parent = []
+    current_deep = 0
+    current_index = 0
+    strs = []
+
+    while(True) :
+        line_str = bvh_file.readline()
+        if(line_str.find("HIERARCHY") != -1):
+            print("HIERARCHY")
+
+        elif(line_str.find("ROOT") != -1):
+            strs = line_str.split()
+            result_str = strs[1]
+            last_joint_name = result_str
+            
+            print(result_str, -1)
+            joint_name.append(result_str)
+            joint_parent.append(-1)
+            if (len(deep_parent) > current_deep):
+                deep_parent[current_deep] = current_index
+            else:
+                deep_parent.append(current_index)
+            current_index += 1
+
+        elif(line_str.find("JOINT") != -1):
+            strs = line_str.split()
+            result_str = strs[1]
+            last_joint_name = result_str
+            joint_name.append(result_str)
+            if (len(deep_parent) > current_deep):
+                deep_parent[current_deep] = current_index
+            else:
+                deep_parent.append(current_index)
+            joint_parent.append(deep_parent[current_deep - 1])
+            print(result_str, joint_name[deep_parent[current_deep - 1]])
+            current_index += 1
+
+        elif(line_str.find("End Site") != -1):
+            result_str = last_joint_name +'_end'
+            joint_name.append(result_str)
+            if (len(deep_parent) > current_deep):
+                deep_parent[current_deep] = current_index
+            else:
+                deep_parent.append(current_index)
+            joint_parent.append(deep_parent[current_deep - 1])
+            print(result_str, joint_name[deep_parent[current_deep - 1]])
+            current_index += 1
+
+        elif(line_str.find("OFFSET") != -1):
+            strs = line_str.split()
+            print(strs)
+            # euler_angle = R.from_euler('XYZ', [float(strs[1]),  float(strs[2]), float(strs[3])], degrees=True)
+            # print(euler_angle)
+            joint_offset.append(np.array([[float(strs[1]),  float(strs[2]), float(strs[3])]]))
+        elif(line_str.find("{") != -1):
+            current_deep = current_deep + 1
+
+        elif(line_str.find("}") != -1):
+            current_deep = current_deep - 1
+
+        elif(line_str.find("MOTION") != -1):
+            print("MOTION")
+            bvh_file.close()
+            break
+
+        else:
+            continue
+
+    
+
+
     return joint_name, joint_parent, joint_offset
 
 
